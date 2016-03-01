@@ -66,6 +66,23 @@ save_dir = os.environ['RESULTS_DIR']
 save_dir = os.path.join(save_dir,'blizzard/')
 
 experiment_name = "baseline_sp"
+rule = 'asgd'
+port = 6000
+
+###############################
+# MULTIGPU
+
+from blocks_extras.extensions.synchronization import (
+    Synchronize, SynchronizeWorker)
+from platoon.param_sync import ASGD
+
+worker = None
+if rule:
+    sync_rule = ASGD()
+    worker = SynchronizeWorker(
+        sync_rule, control_port=port, socket_timeout=2000)
+
+################################
 
 #################
 # Prepare dataset
@@ -233,32 +250,40 @@ valid_monitor = DataStreamMonitoring(
      before_first_epoch = False,
      prefix="valid")
 
-extensions=[
-    Timing(every_n_batches=n_batches),
+
+extensions = [
     train_monitor,
-    valid_monitor,
-    TrackTheBest('valid_nll', every_n_batches = n_batches_valid),
-    Plot(save_dir+ "progress/" +experiment_name+".png",
-     [['train_nll',
-       'valid_nll'], ['train_learning_rate']],
-     every_n_batches=n_batches_valid,
-     email=False),
-    Checkpoint(
-       save_dir+"pkl/best_"+experiment_name+".tar",
-       #save_separately = ['parameters'],
-       save_main_loop = False,
-       use_cpickle=True
-    ).add_condition(
-       ['after_batch'], predicate=OnLogRecord('valid_nll_best_so_far')),
-    Printing(every_n_batches = n_batches),
-    Flush(every_n_batches=n_batches,
-          before_first_epoch = True),
-    LearningRateSchedule(lr,
-      'valid_nll',
-      states = states.values(),
-      every_n_batches = n_batches,
-      before_first_epoch = True)
+    Timing(after_batch = True),
+    Flush(after_batch = True),
+    LearningRateSchedule(
+        lr, 
+        'valid_nll',
+        states = states,
+        every_n_batches = n_batches)
     ]
+
+if not worker or worker.is_main_worker:
+    extensions +=[
+        valid_monitor,
+        TrackTheBest('valid_nll',
+          every_n_batches = n_batches_valid),
+        Plot(save_dir + "progress/" + experiment_name + ".png",
+          [['train_nll',
+          'valid_nll'], ['train_learning_rate']],
+         every_n_batches = n_batches_valid,
+         email = False),
+        Checkpoint(save_dir + "pkl/best_" + experiment_name + ".tar",
+          save_main_loop = False,
+          use_cpickle = True)
+        .add_condition(["after_batch"],
+        predicate=OnLogRecord('valid_nll_best_so_far'))
+        ]
+
+if worker:
+    extensions += [
+        Synchronize(worker, after_batch = True, before_epoch=True)]
+
+extensions += [Printing(after_batch = True)]
 
 main_loop = MainLoop(
     model=model,
