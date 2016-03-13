@@ -1,1 +1,1 @@
-Speech synthesis using recurrent neural networks.
+Speech synthesis using recurrent neural networks.temp.py is my original fileand sample_sp_and_f0.py for sampling.
