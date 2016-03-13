@@ -5,6 +5,14 @@ import matplotlib
 import os
 matplotlib.use('Agg')
 
+import sys
+sys.path.append('../')
+sys.path.append('../../')
+sys.path.append('../../../')
+sys.path.append('../../../../')
+sys.path.append('../../../../../')
+
+
 from matplotlib import pyplot
 from scipy.io import wavfile
 
@@ -14,7 +22,7 @@ from blocks.algorithms import (GradientDescent, Scale,
 from blocks.bricks import (Tanh, MLP,
                         Rectifier, Activation, Identity)
 
-from blocks.bricks.sequence_generators import ( 
+from blocks.bricks.sequence_generators import (
                         Readout, SequenceGenerator)
 from blocks.bricks.recurrent import LSTM, RecurrentStack, GatedRecurrent
 from blocks.extensions import FinishAfter, Printing, Timing, ProgressBar
@@ -62,7 +70,8 @@ lr = 2e-4
 
 floatX = theano.config.floatX
 
-save_dir = os.environ['RESULTS_DIR']
+#save_dir = os.environ['RESULTS_DIR']
+save_dir = './results/'
 save_dir = os.path.join(save_dir,'blizzard/')
 
 experiment_name = "baseline_sp"
@@ -111,7 +120,7 @@ mlp_x = MLP(activations = activations_x,
 
 feedback = DeepTransitionFeedback(mlp = mlp_x)
 
-transition = [GatedRecurrent(dim=hidden_size_recurrent, 
+transition = [GatedRecurrent(dim=hidden_size_recurrent,
                    name = "gru_{}".format(i) ) for i in range(depth_recurrent)]
 
 transition = RecurrentStack( transition,
@@ -131,7 +140,7 @@ readout = Readout(
     feedback_brick = feedback,
     name="readout")
 
-generator = SequenceGenerator(readout=readout, 
+generator = SequenceGenerator(readout=readout,
                               transition=transition,
                               name = "generator")
 
@@ -169,7 +178,7 @@ extra_updates = []
 for name, var in states.items():
   update = tensor.switch(start_flag, 0.*var,
               VariableFilter(theano_name_regex=regex_final_value(name)
-                  )(cg.auxiliary_variables)[0])
+                  )(cg.auxiliary_variables))
   extra_updates.append((var, update))
 
 #################
@@ -221,10 +230,18 @@ algorithm = GradientDescent(
 algorithm.add_updates(extra_updates)
 lr = algorithm.step_rule.components[1].learning_rate
 
+'''
 train_monitor = TrainingDataMonitoring(
-    variables=monitoring_variables + [lr],
+    variables=monitoring_variables ,
     every_n_batches=n_batches,
     prefix="train")
+'''
+
+train_monitor = TrainingDataMonitoring(
+    variables=[cost],
+    every_n_batches=n_batches,
+    prefix="train")
+
 
 valid_monitor = DataStreamMonitoring(
      monitoring_variables,
@@ -232,7 +249,7 @@ valid_monitor = DataStreamMonitoring(
      every_n_batches = n_batches_valid,
      before_first_epoch = False,
      prefix="valid")
-
+'''
 extensions=[
     Timing(every_n_batches=n_batches),
     train_monitor,
@@ -246,7 +263,7 @@ extensions=[
     Checkpoint(
        save_dir+"pkl/best_"+experiment_name+".tar",
        #save_separately = ['parameters'],
-       save_main_loop = False,
+       #save_main_loop = False,
        use_cpickle=True
     ).add_condition(
        ['after_batch'], predicate=OnLogRecord('valid_nll_best_so_far')),
@@ -259,6 +276,17 @@ extensions=[
       every_n_batches = n_batches,
       before_first_epoch = True)
     ]
+
+
+extensions=[
+        Timing(every_n_batches=n_batches),
+        train_monitor,
+        Printing(every_n_batches = n_batches)
+    ]
+'''
+
+extensions = []
+
 
 main_loop = MainLoop(
     model=model,
