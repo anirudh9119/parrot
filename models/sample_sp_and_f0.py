@@ -150,29 +150,26 @@ for this_sample in range(n_samples):
 
         outputs = outputs[:,:, :-401]
 
-#	outputs = outputs[:,:,:-2]
-#	outputs = outputs*sp_std + sp_mean
-#	outputs = outputs.swapaxes(0,1)
-#	outputs = outputs[this_sample]
-#	print outputs.max(), outputs.min()
-
-        outputs_phase = outputs2[:,:, 401:]
-
+	outputs = outputs.swapaxes(0,1)
+	outputs = outputs[this_sample]
+        print "Amlitude Values: ", outputs.max(), outputs.min()
         amplitude = outputs
-        phase = outputs_phase
-
         amplitude = numpy.hstack([amplitude, amplitude[:,::-1][:,1:-1]])
         amplitude = amplitude.astype('float64').copy(order = 'C')
-        print "Amplitude: ", amplitude.shape
+        print "Amplitude Shape: ", amplitude.shape
 
+        outputs_phase = outputs2[:,:, 401:]
+	outputs_phase = outputs_phase.swapaxes(0,1)
+	outputs_phase = outputs_phase[this_sample]
+        print "Phase values: ", outputs_phase.max(), outputs_phase.min()
+        phase = outputs_phase
         phase = numpy.hstack([phase, phase[:,::-1][:,1:-1]])
         phase = phase.astype('float64').copy(order = 'C')
-        print "Phase", phase.shape
+        print "Phase Shape", phase.shape
 
 #        numpy.savez('temp.npz',[amplitude, phase])
 
         '''
-#        print "Shapes ", amplitude.shape, phase.shape
 
 	sampled_f0 = sampled_f0*f0_std + f0_mean
 	sampled_f0 = sampled_f0*sampled_voiced
