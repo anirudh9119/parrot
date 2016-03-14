@@ -2,6 +2,12 @@ import numpy
 import matplotlib
 matplotlib.use('Agg')
 import sys
+
+import scipy#, pylab
+from audio_tools import soundsc
+#from statistics import variance, stdev
+from scipy.io import wavfile
+
 sys.path.append('../')
 sys.path.append('../../')
 sys.path.append('../../../')
@@ -30,6 +36,16 @@ order = 34
 alpha = 0.4
 stage = 2
 gamma = -1.0 / stage
+
+
+def istft(X, fs, T, hop):
+    x = scipy.zeros(T*fs)
+    framesamp = X.shape[1]
+    hopsamp = int(hop*fs)
+    for n,i in enumerate(range(0, len(x)-framesamp, hopsamp)):
+        x[i:i+framesamp] += scipy.real(scipy.ifft(X[n]))
+    return x
+
 
 def _transpose(data):
     return tuple(array.swapaxes(0,1) for array in data)
@@ -167,7 +183,22 @@ for this_sample in range(n_samples):
         phase = phase.astype('float64').copy(order = 'C')
         print "Phase Shape", phase.shape
 
-#        numpy.savez('temp.npz',[amplitude, phase])
+        numpy.savez('temp.npz',amplitude, phase)
+
+        ### amplitude/phase - 2048 * 800
+
+        x_temp = []
+
+        for i in range(len(amplitude)):
+            temp = amplitude[i][:]
+            for j in range(len(temp)):
+                x_temp[i][j] = complex(temp[j], phase[i][j])
+
+
+        #What should be T ?
+        T = 4.61 #Should be length of sequence for ex 60 sec or 2 minutes..
+        x_b = istft(x_temp, 16000, T,  0.025)
+        wavfile.write("some_name.wav", 16000, soundsc(x_b))
 
         '''
 
