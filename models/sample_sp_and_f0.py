@@ -101,7 +101,7 @@ x_tr = next(data_stream.get_epoch_iterator())
 
 #save_dir = os.environ['RESULTS_DIR']
 
-save_dir = './results/'
+save_dir = '/Tmp/anirudhg/results/'
 save_dir = os.path.join(save_dir,'blizzard/')
 
 experiment_name = "best_baseline_sp_"
@@ -111,7 +111,7 @@ main_loop = load(save_dir + "pkl/" + experiment_name + ".pkl")
 
 generator = main_loop.model.get_top_bricks()[0]
 
-steps = 2048
+steps = 183
 n_samples = 10
 
 from blocks.utils import shared_floatx_zeros #shared_floatx
@@ -183,7 +183,7 @@ for this_sample in range(n_samples):
         phase = phase.astype('float64').copy(order = 'C')
         print "Phase Shape", phase.shape
 
-        numpy.savez('temp.npz',amplitude, phase)
+#        numpy.savez('temp.npz',amplitude, phase)
 
         ### amplitude/phase - 2048 * 800
 
@@ -191,17 +191,20 @@ for this_sample in range(n_samples):
 
         for i in range(len(amplitude)):
             temp = amplitude[i][:]
+            b=[]
             for j in range(len(temp)):
-                x_temp[i][j] = complex(temp[j], phase[i][j])
+                b.append(complex(temp[j], phase[i][j]))
+            x_temp.append(b)
 
 
         #What should be T ?
         T = 4.61 #Should be length of sequence for ex 60 sec or 2 minutes..
+        x_temp = numpy.asarray(x_temp)
         x_b = istft(x_temp, 16000, T,  0.025)
-        wavfile.write("some_name.wav", 16000, soundsc(x_b))
+        wavfile.write("some_name_" + str(this_sample) + ".wav", 16000, soundsc(x_b))
+
 
         '''
-
 	sampled_f0 = sampled_f0*f0_std + f0_mean
 	sampled_f0 = sampled_f0*sampled_voiced
 	sampled_f0 = sampled_f0.swapaxes(0,1)

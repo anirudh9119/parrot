@@ -61,7 +61,7 @@ lr = 2e-6
 
 floatX = theano.config.floatX
 
-save_dir = './results/'
+save_dir = '/Tmp/anirudhg/results'
 save_dir = os.path.join(save_dir,'blizzard/')
 
 experiment_name = "baseline_sp_"
@@ -270,7 +270,7 @@ extensions=[ProgressBar(),
                   before_first_epoch = True),
             LearningRateSchedule(lr,
                 'valid_nll',
-#                path = save_dir + "pkl/best_"+experiment_name+".pkl",
+                #path = save_dir + "pkl/best_"+experiment_name+".pkl",
                 states = states.values(),
                 every_n_batches = n_batches,
                 before_first_epoch = True)
